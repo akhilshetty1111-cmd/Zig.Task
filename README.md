@@ -219,8 +219,19 @@ CORS policy whitelists that exact origin.
 
 ### 4. Database
 
-Coming in Phase 2. Migrations will live in `database/migrations/` and be applied with
-`psql` or the provided script.
+```powershell
+# One-time: create the role and database (adjust password as needed).
+psql -U postgres -h 127.0.0.1 -c "CREATE ROLE zigzag LOGIN PASSWORD 'zigzag';"
+psql -U postgres -h 127.0.0.1 -c "CREATE DATABASE zigzag OWNER zigzag;"
+
+# Apply the schema and load development seed data.
+cd database/scripts
+./apply-migrations.ps1
+./seed-dev-data.ps1
+```
+
+See [docs/database.md](docs/database.md) for the full schema and script options. All
+seeded users share the password `Passw0rd!`.
 
 ---
 
@@ -284,8 +295,8 @@ npm test
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Repository, solutions, project scaffolding, conventions | **Done** |
-| 2 | Database schema, migrations, seeds, Dapper connection factory | Next |
-| 3 | DI, MediatR/CQRS, global exception handling, Serilog, Swagger, FluentValidation | |
+| 2 | Database schema, migrations, seeds, Dapper connection factory | **Done** |
+| 3 | DI, MediatR/CQRS, global exception handling, Serilog, Swagger, FluentValidation | Next |
 | 4 | Authentication: register, login, JWT, refresh tokens, current user | |
 | 5 | Projects: CRUD, members, roles | |
 | 6 | Tasks: CRUD, filtering, search, sort, pagination, assignment | |

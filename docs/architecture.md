@@ -183,6 +183,36 @@ of persistence concerns.
 
 ---
 
+## 10. Enum conversion is explicit, not a Dapper `ITypeHandler`
+
+**Problem.** Decision 9 stores enums as checked strings. Dapper needs to translate
+`TaskItemStatus.InProgress` to/from `"IN_PROGRESS"` on every query that touches a
+`status`, `priority` or `role` column.
+
+**What was tried first.** A `SqlMapper.TypeHandler<TEnum>` registered once at startup via
+`SqlMapper.AddTypeHandler`. This is Dapper's documented extension point for exactly this
+kind of custom conversion.
+
+**Why it was rejected.** It does not work. Dapper hardcodes its own enum handling for both
+directions - it converts an enum query parameter to its underlying `int` by default, and it
+calls `Enum.Parse` directly when reading a string column into an enum-typed property - and
+that built-in path runs *instead of* any registered `ITypeHandler`. This was confirmed
+empirically, not assumed: the handler was verified present in Dapper's internal handler
+dictionary via reflection, and the query still failed both directions (`operator does not
+exist: text = integer` writing; `Requested value 'IN_REVIEW' was not found` reading, because
+Dapper's fallback does not know about the underscore).
+
+**Choice.** Enum columns are selected as `text` into a plain `string` property on the
+repository's row DTO. `DbEnumMapper.Parse<TEnum>` and `DbEnumMapper.ToDbValue<TEnum>`
+(`ZigZag.Infrastructure/Persistence/Mapping/`) convert explicitly at the repository
+boundary - `Parse` when building the object returned to `Application`, `ToDbValue` when
+binding a query parameter. Domain and Application code never sees the string form.
+
+**Alternative not taken.** Storing enums as native PostgreSQL enum types side-steps this
+specific problem (Npgsql maps them without a handler) but reopens decision 9's cost:
+altering a native enum requires a migration, and it interacts awkwardly enough with Npgsql's
+type mapping to introduce its own class of problems.
+
 ## Decision log
 
 | # | Decision | Phase |
@@ -196,3 +226,4 @@ of persistence concerns.
 | 7 | `TaskItem` naming | 1 |
 | 8 | CORS fails closed | 1 |
 | 9 | Enums as checked strings | 1 |
+| 10 | Explicit enum mapping, not a Dapper ITypeHandler | 2 |

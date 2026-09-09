@@ -1,4 +1,5 @@
 using Serilog;
+using ZigZag.Infrastructure;
 
 namespace ZigZag.API;
 
@@ -20,7 +21,7 @@ public class Program
         // read. Without it, a bad connection string or malformed appsettings would
         // crash the host with no log line at all.
         Log.Logger = new LoggerConfiguration()
-            .WriteTo.Console()
+            .WriteTo.Console(formatProvider: System.Globalization.CultureInfo.InvariantCulture)
             .CreateBootstrapLogger();
 
         try
@@ -56,6 +57,7 @@ public class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
         builder.Services.AddHealthChecks();
+        builder.Services.AddInfrastructure();
 
         AddConfiguredCors(builder);
 
