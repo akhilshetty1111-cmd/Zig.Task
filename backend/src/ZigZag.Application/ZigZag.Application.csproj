@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Application: commands, queries, handlers, DTOs, validators, interfaces.
+    Depends on Domain only. Knows nothing about PostgreSQL or HTTP -
+    it declares interfaces (IProjectRepository, IJwtTokenService, ...) that
+    Infrastructure implements.
+  -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\ZigZag.Domain\ZigZag.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+</Project>

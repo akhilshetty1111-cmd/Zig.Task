@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    API: the composition root. Controllers, middleware, auth configuration,
+    Swagger, DI registration. It references Infrastructure only so it can
+    call AddInfrastructure() at startup - no repository is used directly here.
+  -->
+
+  <PropertyGroup>
+    <UserSecretsId>zigzag-api-3f6a1c92-8d4b-4e77-9c21-5b0d8a2e7f14</UserSecretsId>
+    <RootNamespace>ZigZag.API</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ZigZag.Application\ZigZag.Application.csproj" />
+    <ProjectReference Include="..\ZigZag.Infrastructure\ZigZag.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Settings.Configuration" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+    <PackageReference Include="Serilog.Enrichers.Environment" />
+    <PackageReference Include="Serilog.Enrichers.Thread" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Integration tests need to see internal types such as Program. -->
+    <InternalsVisibleTo Include="ZigZag.IntegrationTests" />
+  </ItemGroup>
+
+</Project>

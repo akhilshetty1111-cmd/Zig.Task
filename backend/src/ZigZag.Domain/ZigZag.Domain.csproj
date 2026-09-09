@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Domain is the innermost layer: entities, enums, domain rules.
+    It intentionally has ZERO package and project references so that
+    business concepts never depend on MediatR, Dapper, or ASP.NET Core.
+  -->
+
+</Project>

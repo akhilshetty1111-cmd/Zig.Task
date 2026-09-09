@@ -1,0 +1,33 @@
+<Project>
+
+  <!--
+    Shared MSBuild settings for every project in the ZigZag backend solution.
+    Keeping these here means a new project inherits the correct language
+    settings automatically instead of copy-pasting property groups.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Treat warnings as errors in CI so build noise cannot accumulate. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors>CS8600;CS8602;CS8603;CS8618</WarningsAsErrors>
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- 1591: missing XML comment. We want the doc file for Swagger, not the nagging. -->
+    <NoWarn>$(NoWarn);1591</NoWarn>
+
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Product>ZigZag</Product>
+    <Company>ZigZag</Company>
+    <Authors>ZigZag</Authors>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+</Project>

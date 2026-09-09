@@ -1,0 +1,27 @@
+# Normalize line endings so Windows and Linux contributors (and the Ubuntu CI
+# runners) do not produce whole-file diffs on every commit.
+* text=auto eol=lf
+
+# Windows-only tooling that requires CRLF.
+*.sln            text eol=crlf
+*.bat            text eol=crlf
+*.cmd            text eol=crlf
+*.ps1            text eol=crlf
+
+# Shell scripts must keep LF or they break inside Linux containers.
+*.sh             text eol=lf
+
+# Binary - never diff or normalize.
+*.png            binary
+*.jpg            binary
+*.jpeg           binary
+*.gif            binary
+*.ico            binary
+*.pdf            binary
+*.woff           binary
+*.woff2          binary
+*.snk            binary
+*.pfx            binary
+
+# Keep generated lockfiles out of diff review noise.
+package-lock.json  -diff linguist-generated=true
