@@ -300,15 +300,27 @@ npm test
 | 4 | Authentication: register, login, JWT, refresh tokens, current user | **Done** |
 | 5 | Projects: CRUD, members, roles (backend) | **Done** |
 | 6 | Tasks: CRUD, filtering, search, sort, pagination, assignment (backend) | **Done** |
-| 7 | Kanban board: drag & drop, status changes, task history | Backend done via Phase 6's status endpoint; board UI pending |
+| 7 | Kanban board: drag & drop, status changes, task history | **Done**, board UI included in Phase 10 |
 | 8 | Comments, activity history, notifications (backend) | **Done** |
 | 9 | Dashboard: statistics and charts (backend) | **Done** |
-| 10 | Frontend polish: responsive, loading/error/empty states, toasts, a11y | Next |
-| 11 | Unit and integration test coverage of key flows | |
-| 12 | Docker and docker compose | |
-| 13 | GitHub Actions CI | |
-| 14 | Azure provisioning | |
-| 15 | Continuous deployment | |
+| 10 | Frontend: auth, dashboard, projects, tasks, Kanban board, comments | **Core built & verified in a real browser** — see note below |
+| 11 | Unit and integration test coverage of key flows | Backend unit tests done throughout (67 tests); integration test project scaffolded, no tests written yet; frontend has one smoke test |
+| 12 | Docker and docker compose | Not started |
+| 13 | GitHub Actions CI | Not started |
+| 14 | Azure provisioning | Not started |
+| 15 | Continuous deployment | Not started |
+
+**Phase 10 detail — what's built and verified vs. what's left.** Every core screen exists and was
+driven end to end in a real Chrome instance (register → dashboard → create project → create task →
+drag it across the Kanban board → open it → add a comment → back to dashboard with updated stats),
+with the resulting screenshots checked by hand and the browser console checked for errors. Built:
+login/register, dashboard (stat tiles + status/priority breakdowns + recent activity), project
+list/detail (board, task list with filter/search/sort/pagination, members), task detail (edit,
+status/priority/assignee, comments, activity history), the notification bell, a responsive
+sidebar+topbar layout, loading/error/empty states and toast feedback throughout. **Not done:** a
+dedicated Profile/Settings page (minor, not core to any workflow), a full accessibility audit,
+dark mode, and route-based code-splitting (the production bundle is ~245 KB gzipped in one chunk;
+Vite's build flagged this - functionally fine, but real polish work for later).
 
 ---
 

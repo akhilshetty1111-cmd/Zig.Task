@@ -1,67 +1,36 @@
-import { useQuery } from '@tanstack/react-query';
-import { Alert, Box, Chip, CircularProgress, Container, Paper, Stack, Typography } from '@mui/material';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { AuthProvider } from '@/features/auth/AuthContext';
+import { AuthLayout } from '@/layouts/AuthLayout';
+import { AppLayout } from '@/layouts/AppLayout';
+import { ProtectedRoute } from '@/routes/ProtectedRoute';
+import { LoginPage } from '@/features/auth/LoginPage';
+import { RegisterPage } from '@/features/auth/RegisterPage';
+import { DashboardPage } from '@/features/dashboard/DashboardPage';
+import { ProjectsListPage } from '@/features/projects/ProjectsListPage';
+import { ProjectDetailPage } from '@/features/projects/ProjectDetailPage';
+import { TaskDetailPage } from '@/features/tasks/TaskDetailPage';
 
-import { apiClient, ApiError } from '@/api/client';
-
-/**
- * PHASE 1 SHELL.
- *
- * Deliberately minimal: it proves the whole chain is wired - Vite serves React,
- * MUI theming applies, TanStack Query runs, Axios reaches ASP.NET Core, and the
- * backend CORS policy accepts http://localhost:5173. Routing, layouts and the
- * real pages arrive from Phase 4 onward.
- */
 export default function App() {
-  const health = useQuery({
-    queryKey: ['api-health'],
-    queryFn: async () => {
-      const { data } = await apiClient.get<string>('/health');
-      return data;
-    },
-  });
-
   return (
-    <Container maxWidth="sm" sx={{ py: 8 }}>
-      <Stack spacing={3}>
-        <Box>
-          <Typography variant="h1" color="primary">
-            ZigZag
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Project and task management
-          </Typography>
-        </Box>
+    <AuthProvider>
+      <Routes>
+        <Route element={<AuthLayout />}>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+        </Route>
 
-        <Paper variant="outlined" sx={{ p: 3 }}>
-          <Typography variant="h3" gutterBottom>
-            Backend connectivity
-          </Typography>
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/projects" element={<ProjectsListPage />} />
+            <Route path="/projects/:id" element={<ProjectDetailPage />} />
+            <Route path="/tasks/:id" element={<TaskDetailPage />} />
+          </Route>
+        </Route>
 
-          {health.isPending && (
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <CircularProgress size={18} />
-              <Typography variant="body2">Contacting the API…</Typography>
-            </Stack>
-          )}
-
-          {health.isError && (
-            <Alert severity="error">
-              {health.error instanceof ApiError
-                ? health.error.message
-                : 'The API did not respond.'}
-            </Alert>
-          )}
-
-          {health.isSuccess && (
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Chip label={health.data} color="success" size="small" />
-              <Typography variant="body2" color="text.secondary">
-                API reachable at {import.meta.env.VITE_API_BASE_URL}
-              </Typography>
-            </Stack>
-          )}
-        </Paper>
-      </Stack>
-    </Container>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </AuthProvider>
   );
 }
