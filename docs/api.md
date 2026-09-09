@@ -84,7 +84,13 @@ their name (`"Member"`), not a number — see
 alphabetically — the raw text column would put `HIGH` before `LOW`. Tasks with no
 due date always sort last regardless of direction when `sortBy=DueDate`.
 
+| GET | `/api/tasks/{id}/comments` | any member | Chronological |
+| POST | `/api/tasks/{id}/comments` | Member+ | Notifies the task's assignee and creator, never the commenter |
+| DELETE | `/api/tasks/{id}/comments/{commentId}` | author, or Manager+ | Manager+ can moderate any comment |
+| GET | `/api/tasks/{id}/history` | any member | Read side of the writes Phase 6 already made |
+| GET | `/api/notifications?unreadOnly=` | Bearer token | Caller's own notifications |
+| PATCH | `/api/notifications/{id}/read` | Bearer token | Scoped to (id, caller) at the SQL level — marking someone else's notification silently no-ops |
+
 ## Planned
 
-Comments, history (read side), notifications, and dashboard endpoints — see
-the roadmap in the [README](../README.md#roadmap).
+Dashboard endpoints — see the roadmap in the [README](../README.md#roadmap).

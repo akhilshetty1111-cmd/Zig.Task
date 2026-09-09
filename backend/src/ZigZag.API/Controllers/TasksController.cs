@@ -2,6 +2,10 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ZigZag.Application.Common.Models;
+using ZigZag.Application.Features.Comments.Commands.AddComment;
+using ZigZag.Application.Features.Comments.Commands.DeleteComment;
+using ZigZag.Application.Features.Comments.Common;
+using ZigZag.Application.Features.Comments.Queries.GetComments;
 using ZigZag.Application.Features.Tasks.Commands.ChangeTaskAssignee;
 using ZigZag.Application.Features.Tasks.Commands.ChangeTaskPriority;
 using ZigZag.Application.Features.Tasks.Commands.ChangeTaskStatus;
@@ -10,6 +14,7 @@ using ZigZag.Application.Features.Tasks.Commands.DeleteTask;
 using ZigZag.Application.Features.Tasks.Commands.UpdateTask;
 using ZigZag.Application.Features.Tasks.Common;
 using ZigZag.Application.Features.Tasks.Queries.GetTaskById;
+using ZigZag.Application.Features.Tasks.Queries.GetTaskHistory;
 using ZigZag.Application.Features.Tasks.Queries.GetTasks;
 using ZigZag.Domain.Enums;
 
@@ -86,7 +91,31 @@ public sealed class TasksController : ControllerBase
     [HttpPatch("{id:guid}/priority")]
     public async Task<ActionResult<TaskDto>> ChangePriority(Guid id, ChangePriorityRequest request, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new ChangeTaskPriorityCommand(id, request.Priority), cancellationToken));
+
+    [HttpGet("{id:guid}/comments")]
+    public async Task<ActionResult<IReadOnlyList<CommentDto>>> GetComments(Guid id, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetCommentsQuery(id), cancellationToken));
+
+    [HttpPost("{id:guid}/comments")]
+    public async Task<ActionResult<CommentDto>> AddComment(Guid id, AddCommentRequest request, CancellationToken cancellationToken)
+    {
+        var comment = await _mediator.Send(new AddCommentCommand(id, request.Text), cancellationToken);
+        return CreatedAtAction(nameof(GetComments), new { id }, comment);
+    }
+
+    [HttpDelete("{id:guid}/comments/{commentId:guid}")]
+    public async Task<IActionResult> DeleteComment(Guid id, Guid commentId, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteCommentCommand(commentId), cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("{id:guid}/history")]
+    public async Task<ActionResult<IReadOnlyList<TaskHistoryEntryDto>>> GetHistory(Guid id, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetTaskHistoryQuery(id), cancellationToken));
 }
+
+public sealed record AddCommentRequest(string Text);
 
 public sealed record CreateTaskRequest(
     Guid ProjectId, string Title, string? Description, TaskPriority? Priority, Guid? AssignedToUserId, DateOnly? DueDate);
