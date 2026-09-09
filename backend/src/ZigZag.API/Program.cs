@@ -56,7 +56,14 @@ public class Program
             .ReadFrom.Services(services)
             .Enrich.FromLogContext());
 
-        builder.Services.AddControllers();
+        builder.Services.AddControllers()
+            // Default System.Text.Json binds enums as numbers ("role": 2), not
+            // names - confirmed by actually POSTing {"role":"Member"} and
+            // getting a 400 back. Every enum-typed request/response field
+            // (ProjectRole here, TaskItemStatus/TaskPriority from Phase 6 on)
+            // needs the readable string form instead, both directions.
+            .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(
+                new System.Text.Json.Serialization.JsonStringEnumConverter()));
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen(ConfigureSwagger);
         builder.Services.AddHealthChecks();

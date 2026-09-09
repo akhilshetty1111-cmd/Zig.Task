@@ -56,7 +56,22 @@ The refresh token is never in a JSON body — it is set as an `HttpOnly`, `Secur
 [architecture.md, decision 13](architecture.md#13-refresh-token-cookie-is-samesitenone-not-laxstrict)).
 The access token is returned in the response body and sent as `Authorization: Bearer <token>`.
 
+| Method | Route | Auth | Description |
+|---|---|---|---|
+| POST | `/api/projects` | Bearer token | Caller becomes the project's Owner |
+| GET | `/api/projects` | Bearer token | Projects the caller is a member of (`?includeArchived=true` to include archived) |
+| GET | `/api/projects/{id}` | Bearer token | Non-members get 404, not 403 — no existence leak |
+| PUT | `/api/projects/{id}` | Manager+ | Rename/redescribe |
+| DELETE | `/api/projects/{id}` | Owner | Archives (soft-delete), does not hard-delete |
+| GET | `/api/projects/{id}/members` | any member | |
+| POST | `/api/projects/{id}/members` | Manager+ | Add by email; 409 if already a member |
+| DELETE | `/api/projects/{id}/members/{userId}` | Manager+ | 409 if this would remove the last Owner |
+
+Enum-typed fields (`role`, and `status`/`priority` from Phase 6) are read and written as
+their name (`"Member"`), not a number — see
+[architecture.md, decision 16](architecture.md#16-enum-requestresponse-fields-need-jsonstringenumconverter).
+
 ## Planned
 
-Projects, tasks, comments and dashboard endpoints — see the roadmap in the
+Tasks, comments and dashboard endpoints — see the roadmap in the
 [README](../README.md#roadmap).

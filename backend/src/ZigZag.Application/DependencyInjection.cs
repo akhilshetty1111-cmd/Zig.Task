@@ -3,6 +3,7 @@ using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using ZigZag.Application.Common.Behaviors;
 using ZigZag.Application.Features.Authentication.Common;
+using ZigZag.Application.Features.Projects.Common;
 
 namespace ZigZag.Application;
 
@@ -32,6 +33,7 @@ public static class DependencyInjection
         // Not a MediatR handler or FluentValidation validator, so assembly
         // scanning above never finds it - registered explicitly instead.
         services.AddScoped<AuthTokenIssuer>();
+        services.AddScoped<ProjectAuthorizationService>();
 
         return services;
     }

@@ -281,6 +281,29 @@ conversion silently treats `DateTimeKind.Unspecified` as local time, which would
 for what is always a UTC instant. Every repository from Phase 5 onward follows this same
 pattern.
 
+## 15. `count(*)` needs an explicit `::int` cast for Dapper record binding
+
+The same exact-constructor-match issue as decision 14, a different type: PostgreSQL's
+`count(*)` returns `bigint` (`long` in C#), not `int`. A row DTO record with `int
+MemberCount` failed the same way GetById's `DateTimeOffset` did - reproduced by actually
+calling `POST /api/projects`. Cast in SQL (`count(*)::int`) rather than widening the DTO
+property to `long`: a project's member count will never need more than 32 bits, and `int`
+is the correct type for what the API actually returns. `ExecuteScalarAsync<T>` (used by
+`CountOwnersAsync`) is a different Dapper code path that already coerces numeric types
+leniently and was not affected - this only bites record-based `Query`/`QuerySingle`.
+
+## 16. Enum request/response fields need `JsonStringEnumConverter`
+
+System.Text.Json's default enum handling serializes/deserializes an enum as its numeric
+value, not its name - `POST /api/projects/{id}/members` with `{"role":"Member"}` failed
+with a 400 ("could not be converted to AddProjectMemberRequest"), confirmed by actually
+sending the request. `AddJsonOptions` in Program.cs registers a global
+`JsonStringEnumConverter`, so every enum-typed request or response field - `ProjectRole`
+here, `TaskItemStatus`/`TaskPriority` from Phase 6 on - reads and writes as its readable
+name instead. This also makes response bodies consistent with DTOs that already exposed an
+enum as `.ToString()` manually (`UserDto.Role`), so the fix does not change any existing
+JSON shape, only fixes what was previously broken.
+
 ## Decision log
 
 | # | Decision | Phase |
@@ -299,3 +322,5 @@ pattern.
 | 12 | Fresh ValidationContext per validator | 3 |
 | 13 | Refresh cookie is SameSite=None (cross-domain production) | 4 |
 | 14 | Dapper row DTOs use DateTime, converted explicitly to DateTimeOffset | 4 |
+| 15 | count(*) needs ::int cast for Dapper record binding | 5 |
+| 16 | Global JsonStringEnumConverter for enum request/response fields | 5 |
