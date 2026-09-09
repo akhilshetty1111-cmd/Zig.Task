@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ZigZag.Application.Common.Interfaces;
 using ZigZag.Application.Features.Authentication.Common;
+using ZigZag.Application.Features.Tasks.Common;
 using ZigZag.Infrastructure.Persistence;
 using ZigZag.Infrastructure.Persistence.Repositories;
 using ZigZag.Infrastructure.Security;
@@ -24,6 +25,8 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
+        services.AddScoped<ITaskRepository, TaskRepository>();
+        services.AddScoped<ITaskHistoryRepository, TaskHistoryRepository>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<ITokenService, JwtTokenService>();
 

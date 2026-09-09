@@ -299,8 +299,8 @@ npm test
 | 3 | DI, MediatR/CQRS, global exception handling, Serilog, Swagger, FluentValidation | **Done** |
 | 4 | Authentication: register, login, JWT, refresh tokens, current user | **Done** |
 | 5 | Projects: CRUD, members, roles (backend) | **Done** |
-| 6 | Tasks: CRUD, filtering, search, sort, pagination, assignment | Next |
-| 7 | Kanban board: drag & drop, status changes, task history | |
+| 6 | Tasks: CRUD, filtering, search, sort, pagination, assignment (backend) | **Done** |
+| 7 | Kanban board: drag & drop, status changes, task history | Backend done via Phase 6's status endpoint; board UI pending |
 | 8 | Comments, activity history, notifications | |
 | 9 | Dashboard: statistics and charts | |
 | 10 | Frontend polish: responsive, loading/error/empty states, toasts, a11y | |

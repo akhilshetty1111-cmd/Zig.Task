@@ -71,7 +71,20 @@ Enum-typed fields (`role`, and `status`/`priority` from Phase 6) are read and wr
 their name (`"Member"`), not a number — see
 [architecture.md, decision 16](architecture.md#16-enum-requestresponse-fields-need-jsonstringenumconverter).
 
+| POST | `/api/tasks` | Member+ | |
+| GET | `/api/tasks?projectId=&pageNumber=&pageSize=&status=&priority=&search=&assignedTo=&sortBy=&sortDescending=` | any member | Server-side filter/search/sort/pagination |
+| GET | `/api/tasks/{id}` | any member | |
+| PUT | `/api/tasks/{id}` | Member+ | Title/description/due date only |
+| DELETE | `/api/tasks/{id}` | Manager+ | Hard delete — a higher bar than editing |
+| PATCH | `/api/tasks/{id}/status` | Member+ | The Kanban drag-and-drop endpoint; writes a `task_history` row on every real change |
+| PATCH | `/api/tasks/{id}/assignee` | Member+ | 409 if the assignee is not a project member |
+| PATCH | `/api/tasks/{id}/priority` | Member+ | |
+
+`sortBy=Priority` orders by actual urgency (Low < Medium < High < Urgent), not
+alphabetically — the raw text column would put `HIGH` before `LOW`. Tasks with no
+due date always sort last regardless of direction when `sortBy=DueDate`.
+
 ## Planned
 
-Tasks, comments and dashboard endpoints — see the roadmap in the
-[README](../README.md#roadmap).
+Comments, history (read side), notifications, and dashboard endpoints — see
+the roadmap in the [README](../README.md#roadmap).
