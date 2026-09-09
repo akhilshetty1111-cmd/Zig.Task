@@ -91,6 +91,19 @@ due date always sort last regardless of direction when `sortBy=DueDate`.
 | GET | `/api/notifications?unreadOnly=` | Bearer token | Caller's own notifications |
 | PATCH | `/api/notifications/{id}/read` | Bearer token | Scoped to (id, caller) at the SQL level — marking someone else's notification silently no-ops |
 
+| GET | `/api/dashboard` | Bearer token | Every metric in one call — see below |
+
+`GET /api/dashboard` is scoped across every project the caller is a member of
+(not one project) and is deliberately a single batched query (Dapper
+`QueryMultipleAsync`, five `SELECT`s in one round trip), not one call per
+metric. Returns `totalProjects`, `totalTasks`, `completedTasks`, `pendingTasks`,
+`overdueTasks`, `tasksAssignedToMe`, `tasksByStatus` (all 5 statuses always
+present, zero-filled), `tasksByPriority` (all 4 priorities, zero-filled), and
+`recentActivities` (latest 10 `task_history` rows across those projects, most
+recent first).
+
 ## Planned
 
-Dashboard endpoints — see the roadmap in the [README](../README.md#roadmap).
+Nothing — every endpoint in the original spec is implemented. Remaining
+roadmap phases are frontend, testing, Docker, CI/CD and Azure — see the
+[README](../README.md#roadmap).

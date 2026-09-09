@@ -302,8 +302,8 @@ npm test
 | 6 | Tasks: CRUD, filtering, search, sort, pagination, assignment (backend) | **Done** |
 | 7 | Kanban board: drag & drop, status changes, task history | Backend done via Phase 6's status endpoint; board UI pending |
 | 8 | Comments, activity history, notifications (backend) | **Done** |
-| 9 | Dashboard: statistics and charts | Next |
-| 10 | Frontend polish: responsive, loading/error/empty states, toasts, a11y | |
+| 9 | Dashboard: statistics and charts (backend) | **Done** |
+| 10 | Frontend polish: responsive, loading/error/empty states, toasts, a11y | Next |
 | 11 | Unit and integration test coverage of key flows | |
 | 12 | Docker and docker compose | |
 | 13 | GitHub Actions CI | |

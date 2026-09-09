@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<ITaskHistoryRepository, TaskHistoryRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<ITokenService, JwtTokenService>();
 
