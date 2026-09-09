@@ -45,8 +45,18 @@ Failures return a consistent shape produced by the global exception middleware:
 |---|---|---|---|
 | GET | `/health` | none | Liveness probe |
 | GET | `/api/health` | none | Liveness probe via the API base path |
+| POST | `/api/auth/register` | none | Create an account; auto-issues tokens (no separate login call needed) |
+| POST | `/api/auth/login` | none | Same failure message for unknown email, wrong password, or a deactivated account — no user enumeration |
+| POST | `/api/auth/refresh` | refresh cookie | Rotates the refresh token; reusing an already-rotated token revokes every active token for that user |
+| POST | `/api/auth/logout` | refresh cookie | Idempotent; works even with an expired/missing access token |
+| GET | `/api/auth/me` | Bearer token | Current user |
+
+The refresh token is never in a JSON body — it is set as an `HttpOnly`, `Secure`,
+`SameSite=None` cookie scoped to `/api/auth` (see
+[architecture.md, decision 13](architecture.md#13-refresh-token-cookie-is-samesitenone-not-laxstrict)).
+The access token is returned in the response body and sent as `Authorization: Bearer <token>`.
 
 ## Planned
 
-Authentication, projects, tasks, comments and dashboard endpoints — see the
-roadmap in the [README](../README.md#roadmap).
+Projects, tasks, comments and dashboard endpoints — see the roadmap in the
+[README](../README.md#roadmap).

@@ -248,6 +248,39 @@ duplicated once per validator registered for that request. A single validator pe
 ever ends up with more than one registered validator gets correct, non-duplicated field
 errors.
 
+## 13. Refresh token cookie is `SameSite=None`, not `Lax`/`Strict`
+
+The refresh token is delivered as an `HttpOnly`, `Secure`, `SameSite=None` cookie scoped to
+`/api/auth`, never returned in a JSON body. `SameSite=None` specifically - not the more
+common `Strict`/`Lax` default - because production puts the SPA (Azure Static Web Apps) and
+the API (Azure App Service) on different domains: a genuinely cross-site relationship, not
+just cross-port like local dev. `Strict`/`Lax` would silently stop sending the cookie in
+production while working fine locally, the worst kind of bug to catch late. The CSRF
+exposure this opens is bounded: CORS already restricts which origins can read a response,
+so a forged cross-site request could at most invalidate the caller's own session, not
+obtain a token.
+
+## 14. Dapper repository row DTOs use `DateTime`, not `DateTimeOffset`
+
+**Problem.** Every `timestamptz` column needs to become a `DateTimeOffset` for
+Domain/Application, which use it exclusively (never naive `DateTime`).
+
+**What broke.** A row DTO record with `DateTimeOffset CreatedAt` failed at runtime -
+confirmed by actually calling `GET /api/auth/me`, not caught by the build - with "no
+parameterless constructor or matching signature ... System.DateTime createdat". Npgsql
+returns `timestamptz` columns as `System.DateTime`, and Dapper's record materialization
+requires an exact constructor-parameter type match; a `DateTimeOffset` property is a type
+mismatch at that step even though `DateTime` converts to `DateTimeOffset` implicitly
+everywhere else in C#.
+
+**Choice.** Repository row DTOs use `DateTime` for every `timestamptz` column;
+`DbDateTimeMapper.ToUtcOffset` (`ZigZag.Infrastructure/Persistence/Mapping/`) converts
+explicitly when mapping to the Domain/Application type, forcing `DateTimeKind.Utc` rather
+than trusting Npgsql to have set it - the implicit `DateTime`-&gt;`DateTimeOffset`
+conversion silently treats `DateTimeKind.Unspecified` as local time, which would be wrong
+for what is always a UTC instant. Every repository from Phase 5 onward follows this same
+pattern.
+
 ## Decision log
 
 | # | Decision | Phase |
@@ -264,3 +297,5 @@ errors.
 | 10 | Explicit enum mapping, not a Dapper ITypeHandler | 2 |
 | 11 | API response conventions (unwrapped success, enveloped failure) | 3 |
 | 12 | Fresh ValidationContext per validator | 3 |
+| 13 | Refresh cookie is SameSite=None (cross-domain production) | 4 |
+| 14 | Dapper row DTOs use DateTime, converted explicitly to DateTimeOffset | 4 |

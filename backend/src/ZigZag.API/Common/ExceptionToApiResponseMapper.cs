@@ -50,6 +50,10 @@ public static class ExceptionToApiResponseMapper
                 StatusCodes.Status409Conflict,
                 new ApiErrorResponse(conflict.Message, [], traceId)),
 
+            AuthenticationFailedException authFailed => (
+                StatusCodes.Status401Unauthorized,
+                new ApiErrorResponse(authFailed.Message, [], traceId)),
+
             _ => (
                 StatusCodes.Status500InternalServerError,
                 new ApiErrorResponse(

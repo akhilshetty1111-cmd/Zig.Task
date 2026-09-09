@@ -1,6 +1,10 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ZigZag.Application.Common.Interfaces;
+using ZigZag.Application.Features.Authentication.Common;
 using ZigZag.Infrastructure.Persistence;
+using ZigZag.Infrastructure.Persistence.Repositories;
+using ZigZag.Infrastructure.Security;
 
 namespace ZigZag.Infrastructure;
 
@@ -8,20 +12,21 @@ namespace ZigZag.Infrastructure;
 /// Composition entry point for the Infrastructure layer, called once from
 /// ZigZag.API's Program.cs.
 /// </summary>
-/// <remarks>
-/// PHASE 2 SCOPE: persistence only - the connection factory. Repository
-/// registrations, JWT services and password hashing are added here in Phase 4
-/// alongside authentication.
-/// </remarks>
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Scoped: one connection factory instance per HTTP request, matching
-        // the lifetime repositories will be registered with in Phase 4-6, so a
-        // request that touches multiple repositories can share one connection
-        // for transactional command handlers.
+        // Scoped: one connection factory instance per HTTP request, so a
+        // request that touches multiple repositories could share one
+        // connection for transactional command handlers (Phase 6+).
         services.AddScoped<IDbConnectionFactory, NpgsqlConnectionFactory>();
+
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+        services.AddScoped<ITokenService, JwtTokenService>();
+
+        services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
 
         return services;
     }

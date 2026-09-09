@@ -1,8 +1,13 @@
 using System.Reflection;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using ZigZag.API.Middleware;
+using ZigZag.API.Services;
 using ZigZag.Application;
+using ZigZag.Application.Common.Interfaces;
 using ZigZag.Infrastructure;
 
 namespace ZigZag.API;
@@ -10,11 +15,6 @@ namespace ZigZag.API;
 /// <summary>
 /// Composition root for the ZigZag API.
 /// </summary>
-/// <remarks>
-/// PHASE 3 SCOPE: adds MediatR/CQRS, the validation and logging pipeline
-/// behaviors, and global exception handling on top of the Phase 1/2
-/// foundation. JWT authentication is added in Phase 4.
-/// </remarks>
 public class Program
 {
     /// <summary>Application entry point.</summary>
@@ -70,8 +70,13 @@ public class Program
         // ExceptionHandler delegate is configured. Confirmed by actually
         // running the app: it crashed on startup without this line.
         builder.Services.AddProblemDetails();
-        builder.Services.AddInfrastructure();
+        builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddApplication();
+
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+        AddConfiguredAuthentication(builder);
 
         AddConfiguredCors(builder);
 
@@ -96,6 +101,13 @@ public class Program
 
         app.UseHttpsRedirection();
         app.UseCors(CorsPolicyName);
+
+        // Authentication before Authorization, both after CORS: CORS decides
+        // whether the browser even lets the request through; authentication
+        // establishes who is calling; authorization decides what they may do.
+        app.UseAuthentication();
+        app.UseAuthorization();
+
         app.MapControllers();
 
         // Two paths on purpose:
@@ -109,10 +121,9 @@ public class Program
     }
 
     /// <summary>
-    /// Metadata and XML-comment wiring only. The JWT bearer security scheme
-    /// (the "Authorize" button, per the "Swagger" requirement in the spec) is
-    /// added in Phase 4 alongside the login endpoint - configuring it before
-    /// there is any way to obtain a token would just be dead UI.
+    /// Metadata, XML comments, and the JWT bearer security scheme: login in
+    /// Swagger, copy the accessToken from the response, paste it into the
+    /// "Authorize" dialog, then call any [Authorize]-protected endpoint.
     /// </summary>
     private static void ConfigureSwagger(Swashbuckle.AspNetCore.SwaggerGen.SwaggerGenOptions options)
     {
@@ -129,6 +140,91 @@ public class Program
         {
             options.IncludeXmlComments(xmlPath);
         }
+
+        const string bearerScheme = "Bearer";
+        options.AddSecurityDefinition(bearerScheme, new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Paste only the access token - Swagger adds the \"Bearer \" prefix itself.",
+        });
+
+        // Applied globally rather than per-[Authorize]-endpoint via an
+        // IOperationFilter: simpler, and a lock icon on an endpoint that
+        // doesn't need auth is harmless, unlike the reverse.
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = bearerScheme },
+                },
+                []
+            },
+        });
+    }
+
+    /// <summary>
+    /// JWT bearer authentication. Reads the same "Jwt" configuration keys
+    /// that Infrastructure's JwtTokenService uses to ISSUE tokens - both
+    /// sides must agree on Key/Issuer/Audience or validation fails for a
+    /// token this same API just handed out.
+    /// </summary>
+    private static void AddConfiguredAuthentication(WebApplicationBuilder builder)
+    {
+        var jwtSection = builder.Configuration.GetSection("Jwt");
+        var key = jwtSection["Key"]
+            ?? throw new InvalidOperationException(
+                "Jwt:Key is not configured. Set it via appsettings, user secrets, or the Jwt__Key environment variable.");
+
+        builder.Services
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtSection["Issuer"],
+                    ValidateAudience = true,
+                    ValidAudience = jwtSection["Audience"],
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromSeconds(30),
+                };
+
+                // Without this, a missing/invalid/expired token produces an
+                // empty 401 body - the JwtBearer handler short-circuits before
+                // the request ever reaches GlobalExceptionHandler, so the
+                // standard ApiErrorResponse envelope never gets applied.
+                // Confirmed by actually calling a protected endpoint with no
+                // token: the response really did come back with an empty body.
+                options.Events = new JwtBearerEvents
+                {
+                    OnChallenge = context =>
+                    {
+                        context.HandleResponse();
+                        return WriteUnauthorizedResponse(context.HttpContext, "Authentication is required.");
+                    },
+                    OnForbidden = context => WriteUnauthorizedResponse(
+                        context.HttpContext, "You do not have permission to perform this action.", StatusCodes.Status403Forbidden),
+                };
+            });
+
+        builder.Services.AddAuthorization();
+    }
+
+    private static Task WriteUnauthorizedResponse(
+        HttpContext httpContext, string message, int statusCode = StatusCodes.Status401Unauthorized)
+    {
+        httpContext.Response.StatusCode = statusCode;
+        httpContext.Response.ContentType = "application/json";
+        var traceId = System.Diagnostics.Activity.Current?.Id ?? httpContext.TraceIdentifier;
+        return httpContext.Response.WriteAsJsonAsync(
+            new ZigZag.API.Common.ApiErrorResponse(message, [], traceId));
     }
 
     private const string CorsPolicyName = "ZigZagCors";

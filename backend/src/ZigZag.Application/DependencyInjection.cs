@@ -2,6 +2,7 @@ using System.Reflection;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using ZigZag.Application.Common.Behaviors;
+using ZigZag.Application.Features.Authentication.Common;
 
 namespace ZigZag.Application;
 
@@ -27,6 +28,10 @@ public static class DependencyInjection
         });
 
         services.AddValidatorsFromAssembly(ApplicationAssembly);
+
+        // Not a MediatR handler or FluentValidation validator, so assembly
+        // scanning above never finds it - registered explicitly instead.
+        services.AddScoped<AuthTokenIssuer>();
 
         return services;
     }

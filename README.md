@@ -297,8 +297,8 @@ npm test
 | 1 | Repository, solutions, project scaffolding, conventions | **Done** |
 | 2 | Database schema, migrations, seeds, Dapper connection factory | **Done** |
 | 3 | DI, MediatR/CQRS, global exception handling, Serilog, Swagger, FluentValidation | **Done** |
-| 4 | Authentication: register, login, JWT, refresh tokens, current user | Next |
-| 5 | Projects: CRUD, members, roles | |
+| 4 | Authentication: register, login, JWT, refresh tokens, current user | **Done** |
+| 5 | Projects: CRUD, members, roles | Next |
 | 6 | Tasks: CRUD, filtering, search, sort, pagination, assignment | |
 | 7 | Kanban board: drag & drop, status changes, task history | |
 | 8 | Comments, activity history, notifications | |
