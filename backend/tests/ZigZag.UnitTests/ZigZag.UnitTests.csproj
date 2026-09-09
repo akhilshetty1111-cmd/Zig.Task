@@ -1,16 +1,30 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Fast, in-memory tests: command/query handlers, validators, domain rules.
-    No database, no HTTP. Dependencies are substituted with NSubstitute.
+    Fast, in-memory tests: command/query handlers, validators, domain rules,
+    and pure API-layer logic (e.g. ExceptionToApiResponseMapper) that needs no
+    HTTP context. No database, no network. Dependencies are substituted with
+    NSubstitute. The ZigZag.API reference is for that last category only -
+    genuine HTTP round-trip tests belong in ZigZag.IntegrationTests instead.
   -->
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- CA1707: xUnit's Method_Scenario_Expected naming convention is
+         intentional here and reads more clearly than the alternative. -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- ZigZag.API is Sdk.Web; its ASP.NET Core FrameworkReference does not
+         flow transitively into this plain Sdk test project, so types like
+         Microsoft.AspNetCore.Http.StatusCodes need it declared explicitly. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ZigZag.API\ZigZag.API.csproj" />
     <ProjectReference Include="..\..\src\ZigZag.Application\ZigZag.Application.csproj" />
     <ProjectReference Include="..\..\src\ZigZag.Domain\ZigZag.Domain.csproj" />
     <ProjectReference Include="..\..\src\ZigZag.Infrastructure\ZigZag.Infrastructure.csproj" />

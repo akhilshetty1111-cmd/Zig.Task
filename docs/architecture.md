@@ -213,6 +213,41 @@ specific problem (Npgsql maps them without a handler) but reopens decision 9's c
 altering a native enum requires a migration, and it interacts awkwardly enough with Npgsql's
 type mapping to introduce its own class of problems.
 
+## 11. API response conventions
+
+Success responses are **not** wrapped - a handler's DTO is returned directly with the
+appropriate 2xx status. Only failures use the `ApiErrorResponse` envelope
+(`success`/`message`/`errors`/`traceId`), built by the global exception handler. This
+matches ordinary REST practice (the body's shape describes the resource, not a transport
+wrapper) and keeps every handler free of `ApiResponse<T>` boilerplate on its return type.
+
+## 12. `ValidationContext<T>` is not safe to share across validators
+
+**Problem.** `ValidationBehavior` runs every registered `IValidator<TRequest>` for a
+request and aggregates their failures.
+
+**What went wrong first.** The initial implementation - the same pattern used by several
+popular MediatR+FluentValidation reference templates - built one `ValidationContext<TRequest>`
+and passed it to every validator:
+
+```csharp
+var context = new ValidationContext<TRequest>(request);
+var results = await Task.WhenAll(_validators.Select(v => v.ValidateAsync(context, ct)));
+```
+
+**Why it's wrong.** `ValidationContext<T>` is a stateful accumulator, not an immutable
+snapshot - FluentValidation supports child/include-rule scenarios that deliberately want
+several validators to append into one shared failure list. Confirmed empirically with a
+throwaway two-validator repro: passing the same context to both meant *each* validator's
+returned `ValidationResult.Errors` contained *both* validators' failures - every failure
+duplicated once per validator registered for that request. A single validator per request
+(the common case) never triggers it, which is exactly why it is easy to ship unnoticed.
+
+**Choice.** A fresh `ValidationContext<TRequest>` per validator call
+(`ZigZag.Application/Common/Behaviors/ValidationBehavior.cs`). Any command or query that
+ever ends up with more than one registered validator gets correct, non-duplicated field
+errors.
+
 ## Decision log
 
 | # | Decision | Phase |
@@ -227,3 +262,5 @@ type mapping to introduce its own class of problems.
 | 8 | CORS fails closed | 1 |
 | 9 | Enums as checked strings | 1 |
 | 10 | Explicit enum mapping, not a Dapper ITypeHandler | 2 |
+| 11 | API response conventions (unwrapped success, enveloped failure) | 3 |
+| 12 | Fresh ValidationContext per validator | 3 |

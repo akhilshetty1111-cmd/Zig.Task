@@ -1,4 +1,8 @@
+using System.Reflection;
+using Microsoft.OpenApi.Models;
 using Serilog;
+using ZigZag.API.Middleware;
+using ZigZag.Application;
 using ZigZag.Infrastructure;
 
 namespace ZigZag.API;
@@ -7,10 +11,9 @@ namespace ZigZag.API;
 /// Composition root for the ZigZag API.
 /// </summary>
 /// <remarks>
-/// PHASE 1 SCOPE: this wires up only what is needed for the API to start, log,
-/// serve Swagger and answer a health probe. MediatR/CQRS registration, global
-/// exception middleware, FluentValidation pipeline behaviors and JWT
-/// authentication are added in Phase 3 and Phase 4.
+/// PHASE 3 SCOPE: adds MediatR/CQRS, the validation and logging pipeline
+/// behaviors, and global exception handling on top of the Phase 1/2
+/// foundation. JWT authentication is added in Phase 4.
 /// </remarks>
 public class Program
 {
@@ -55,13 +58,31 @@ public class Program
 
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
-        builder.Services.AddSwaggerGen();
+        builder.Services.AddSwaggerGen(ConfigureSwagger);
         builder.Services.AddHealthChecks();
+        builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+        // Required by the exception handler middleware's own startup
+        // validation even though it's never reached in practice: GlobalExceptionHandler
+        // always returns true (it maps every exception, including a catch-all
+        // for unmapped ones), so this fallback JSON:API-style ProblemDetails
+        // formatter never actually runs - but UseExceptionHandler() throws at
+        // startup if neither this, an ExceptionHandlingPath, nor an
+        // ExceptionHandler delegate is configured. Confirmed by actually
+        // running the app: it crashed on startup without this line.
+        builder.Services.AddProblemDetails();
         builder.Services.AddInfrastructure();
+        builder.Services.AddApplication();
 
         AddConfiguredCors(builder);
 
         var app = builder.Build();
+
+        // No-argument overload: runs the IExceptionHandler(s) registered via
+        // AddExceptionHandler<GlobalExceptionHandler>() above, rather than the
+        // older lambda/error-path forms of this middleware. Must be first so it
+        // catches everything downstream, including exceptions from Serilog's
+        // own request-logging middleware.
+        app.UseExceptionHandler();
 
         // Structured request logging: one enriched line per request instead of the
         // three noisy default lines from the framework.
@@ -85,6 +106,29 @@ public class Program
         app.MapHealthChecks("/api/health");
 
         return app;
+    }
+
+    /// <summary>
+    /// Metadata and XML-comment wiring only. The JWT bearer security scheme
+    /// (the "Authorize" button, per the "Swagger" requirement in the spec) is
+    /// added in Phase 4 alongside the login endpoint - configuring it before
+    /// there is any way to obtain a token would just be dead UI.
+    /// </summary>
+    private static void ConfigureSwagger(Swashbuckle.AspNetCore.SwaggerGen.SwaggerGenOptions options)
+    {
+        options.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = "ZigZag API",
+            Version = "v1",
+            Description = "Project and task management API - Kanban boards, task workflows, comments and a reporting dashboard.",
+        });
+
+        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+        if (File.Exists(xmlPath))
+        {
+            options.IncludeXmlComments(xmlPath);
+        }
     }
 
     private const string CorsPolicyName = "ZigZagCors";
