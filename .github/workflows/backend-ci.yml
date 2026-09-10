@@ -1,0 +1,51 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: backend/global.json
+          cache: true
+          # Content changes exactly when a dependency version changes
+          # (Central Package Management) - a good single cache key source.
+          cache-dependency-path: backend/Directory.Packages.props
+
+      - name: Restore
+        working-directory: backend
+        run: dotnet restore ZigZag.sln
+
+      - name: Build
+        working-directory: backend
+        run: dotnet build ZigZag.sln --no-restore --configuration Release
+
+      - name: Run unit tests
+        working-directory: backend
+        run: dotnet test tests/ZigZag.UnitTests --no-build --configuration Release --logger "console;verbosity=normal"
+
+      # Testcontainers pulls a throwaway PostgreSQL image itself - GitHub's
+      # ubuntu-latest runners already have Docker running, no extra service
+      # container needed here.
+      - name: Run integration tests
+        working-directory: backend
+        run: dotnet test tests/ZigZag.IntegrationTests --no-build --configuration Release --logger "console;verbosity=normal"
