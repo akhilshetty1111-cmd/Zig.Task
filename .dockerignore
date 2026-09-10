@@ -1,0 +1,16 @@
+# Applies to any build whose context is the repo root (currently just the
+# frontend image - see docker/frontend.Dockerfile). Without this, Docker
+# would upload the entire repository - including .git and every bin/obj/
+# node_modules directory - as the "build context" on every build.
+.git/
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/.vite/
+**/coverage/
+**/TestResults/
+*.log
+.env
+.env.*
+!frontend/zigzag-web/.env.development

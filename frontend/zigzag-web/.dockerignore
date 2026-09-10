@@ -1,0 +1,11 @@
+# Keeps the Docker build context small and fast. node_modules especially -
+# it's large, and native-dependency packages built on your host wouldn't
+# necessarily run correctly inside the container anyway; npm ci reinstalls
+# them fresh in the image.
+node_modules/
+dist/
+.vite/
+coverage/
+*.log
+.env
+.env.local

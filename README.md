@@ -233,6 +233,25 @@ cd database/scripts
 See [docs/database.md](docs/database.md) for the full schema and script options. All
 seeded users share the password `Passw0rd!`.
 
+### 5. Or skip all of the above: Docker
+
+If Docker Desktop is installed, one command starts PostgreSQL, the API and the frontend
+together, with the database schema and seed data applied automatically on first run:
+
+```powershell
+docker compose up
+```
+
+| URL | What |
+|---|---|
+| <http://localhost:5173> | The app |
+| <http://localhost:5000/swagger> | Swagger UI |
+
+`Ctrl+C` stops it; `docker compose down` also removes the containers (the database's data
+survives in a Docker volume either way — `docker compose down -v` is what actually deletes
+it). See [docs/docker.md](docs/docker.md) for how the three containers are put together and
+why.
+
 ---
 
 ## Environment variables
@@ -305,7 +324,7 @@ npm test
 | 9 | Dashboard: statistics and charts (backend) | **Done** |
 | 10 | Frontend: auth, dashboard, projects, tasks, Kanban board, comments | **Core built & verified in a real browser** — see note below |
 | 11 | Unit and integration test coverage of key flows | Backend unit tests done throughout (67 tests); integration test project scaffolded, no tests written yet; frontend has one smoke test |
-| 12 | Docker and docker compose | Not started |
+| 12 | Docker and docker compose | **Done** |
 | 13 | GitHub Actions CI | Not started |
 | 14 | Azure provisioning | Not started |
 | 15 | Continuous deployment | Not started |
@@ -331,5 +350,6 @@ Vite's build flagged this - functionally fine, but real polish work for later).
 | [docs/architecture.md](docs/architecture.md) | Layering, CQRS, design decisions |
 | [docs/database.md](docs/database.md) | Schema, indexes, migration strategy |
 | [docs/api.md](docs/api.md) | Endpoint reference |
+| [docs/docker.md](docs/docker.md) | The three containers, how they're networked, common commands |
 | [docs/deployment.md](docs/deployment.md) | Azure resources and setup |
 | [docs/cicd.md](docs/cicd.md) | Pipelines and branch strategy |

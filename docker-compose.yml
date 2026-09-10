@@ -1,0 +1,79 @@
+# Local development environment: `docker compose up` from the repo root
+# starts PostgreSQL, the API and the frontend, wired together.
+#
+# Ports on YOUR machine (the only ones you'll ever type into a browser):
+#   http://localhost:5173        the app
+#   http://localhost:5000/swagger  the API's Swagger UI
+#
+# postgres has no host port - see its comment below for why.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: zigzag
+      POSTGRES_USER: zigzag
+      POSTGRES_PASSWORD: zigzag
+    # No "ports:" mapping on purpose. Only the api container needs to reach
+    # this database, over the internal Docker network Compose creates
+    # automatically - publishing 5432 to the host isn't needed for that, and
+    # this machine already has a native PostgreSQL service bound to 5432
+    # (see docs/database.md), which a published port here would collide with.
+    # Uncomment to inspect the containerized DB directly with psql/pgAdmin:
+    # ports:
+    #   - "5433:5432"
+    volumes:
+      - zigzag-postgres-data:/var/lib/postgresql/data
+      # The official postgres image runs every .sql/.sh file in this
+      # directory, in filename order, but ONLY the very first time a
+      # container starts against an empty data volume. Reuses the exact same
+      # SQL Phase 2 already wrote - one source of truth for the schema,
+      # rather than a second copy maintained just for Docker.
+      - ./database/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seeds/dev_seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zigzag -d zigzag"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # "postgres", not "localhost" - from inside this container, "postgres"
+      # is the other container, resolved through Docker's internal DNS.
+      ConnectionStrings__ZigZagDb: "Host=postgres;Port=5432;Database=zigzag;Username=zigzag;Password=zigzag"
+      # Same dev-only key already committed in appsettings.Development.json
+      # (see docs/architecture.md) - not a new secret to manage, just reused
+      # here so the container needs no extra setup to start.
+      Jwt__Key: "MunERAy1zHIVHjFyo0cOra8Uc4l/UV7EvYpxmMWVnDhvNRoyFF3E11Bc/QparQ7u71kK1dkZm5SuDQqRUAuR7A=="
+      Jwt__Issuer: "https://zigzag.api"
+      Jwt__Audience: "https://zigzag.web"
+      Cors__AllowedOrigins__0: "http://localhost:5173"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      # Repo root, not frontend/zigzag-web/ - see docker/frontend.Dockerfile
+      # for why (it also needs docker/nginx.conf, a sibling of frontend/).
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        # localhost:5000, not http://api:8080/api: this URL is called by
+        # the BROWSER (outside Docker's network) once the page loads, not by
+        # the web container itself, which only ever serves static files.
+        VITE_API_BASE_URL: http://localhost:5000/api
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  zigzag-postgres-data:

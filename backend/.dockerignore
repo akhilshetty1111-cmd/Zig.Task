@@ -1,0 +1,11 @@
+# Keeps the Docker build context small and fast, and avoids copying stale
+# locally-built artifacts (bin/obj from your own machine, which won't run in
+# the container's Linux environment) into the image.
+**/bin/
+**/obj/
+**/.vs/
+**/TestResults/
+**/coverage/
+*.user
+.env
+.env.*
