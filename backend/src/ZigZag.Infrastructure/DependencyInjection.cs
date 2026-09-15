@@ -1,12 +1,14 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ZigZag.Application.Common.Interfaces;
+using ZigZag.Application.Features.Attachments.Common;
 using ZigZag.Application.Features.Authentication.Common;
 using ZigZag.Application.Features.Comments.Common;
 using ZigZag.Application.Features.Tasks.Common;
 using ZigZag.Infrastructure.Persistence;
 using ZigZag.Infrastructure.Persistence.Repositories;
 using ZigZag.Infrastructure.Security;
+using ZigZag.Infrastructure.Storage;
 
 namespace ZigZag.Infrastructure;
 
@@ -29,12 +31,15 @@ public static class DependencyInjection
         services.AddScoped<ITaskRepository, TaskRepository>();
         services.AddScoped<ITaskHistoryRepository, TaskHistoryRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
+        services.AddScoped<IAttachmentRepository, AttachmentRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
 
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+        services.Configure<BlobStorageSettings>(configuration.GetSection(BlobStorageSettings.SectionName));
 
         return services;
     }

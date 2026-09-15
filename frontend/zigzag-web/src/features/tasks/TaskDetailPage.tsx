@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -26,8 +26,10 @@ import {
 // MUI 6.3.0 still ships the legacy Grid as the default `Grid` export; the
 // `size={{ xs, md }}` API used throughout this file lives on Grid2.
 import Grid from '@mui/material/Grid2';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 import { useProject, useProjectMembers } from '@/features/projects/useProjects';
 import {
   useChangeTaskAssignee,
@@ -39,6 +41,7 @@ import {
   useUpdateTask,
 } from './useTasks';
 import { useAddComment, useComments, useDeleteComment } from '@/features/comments/useComments';
+import { useAttachments, useDeleteAttachment, useUploadAttachment } from '@/features/attachments/useAttachments';
 import { useAuth } from '@/features/auth/AuthContext';
 import { PriorityChip, StatusChip } from '@/components/StatusPriorityChips';
 import { EmptyState, ErrorState, LoadingState } from '@/components/StateViews';
@@ -72,6 +75,12 @@ function formatHistoryValue(fieldName: string, value: string | null, members: Pr
   return value;
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -80,11 +89,13 @@ export function TaskDetailPage() {
   const { data: project } = useProject(task?.projectId);
   const { data: members } = useProjectMembers(task?.projectId);
   const { data: comments } = useComments(id);
+  const { data: attachments } = useAttachments(id);
   const { data: history } = useTaskHistory(id);
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const changeStatus = useChangeTaskStatus(task?.projectId ?? '');
   const changePriority = useChangeTaskPriority(task?.projectId ?? '', id ?? '');
@@ -92,6 +103,8 @@ export function TaskDetailPage() {
   const deleteTask = useDeleteTask(task?.projectId ?? '');
   const addComment = useAddComment(id ?? '');
   const deleteComment = useDeleteComment(id ?? '');
+  const uploadAttachment = useUploadAttachment(id ?? '');
+  const deleteAttachment = useDeleteAttachment(id ?? '');
 
   if (isPending) return <LoadingState label="Loading task…" />;
   if (isError) {
@@ -107,6 +120,13 @@ export function TaskDetailPage() {
     if (!commentText.trim()) return;
     await addComment.mutateAsync(commentText.trim());
     setCommentText('');
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file next time
+    if (!file) return;
+    await uploadAttachment.mutateAsync(file);
   };
 
   return (
@@ -208,6 +228,47 @@ export function TaskDetailPage() {
               <Button variant="contained" onClick={handleAddComment} disabled={addComment.isPending || !commentText.trim()}>
                 Post
               </Button>
+            </Stack>
+          </Paper>
+
+          <Paper variant="outlined" sx={{ p: 2.5, mb: 3 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+              <Typography variant="h3">Attachments</Typography>
+              <Button
+                size="small"
+                startIcon={<AttachFileIcon />}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadAttachment.isPending}
+              >
+                Attach file
+              </Button>
+              <input ref={fileInputRef} type="file" hidden onChange={handleFileSelected} />
+            </Stack>
+            <Stack spacing={1.5}>
+              {!attachments || attachments.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  No files attached yet.
+                </Typography>
+              ) : (
+                attachments.map((attachment) => (
+                  <Stack key={attachment.id} direction="row" alignItems="center" spacing={1.5}>
+                    <InsertDriveFileOutlinedIcon fontSize="small" color="action" />
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Link href={attachment.fileUrl} target="_blank" rel="noopener noreferrer" variant="body2" underline="hover" noWrap sx={{ display: 'block' }}>
+                        {attachment.fileName}
+                      </Link>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatFileSize(attachment.fileSizeBytes)} · {attachment.uploadedByName} · {formatRelativeTime(attachment.createdAt)}
+                      </Typography>
+                    </Box>
+                    {attachment.uploadedBy === user?.id && (
+                      <IconButton size="small" onClick={() => deleteAttachment.mutate(attachment.id)}>
+                        <DeleteOutlineIcon fontSize="inherit" />
+                      </IconButton>
+                    )}
+                  </Stack>
+                ))
+              )}
             </Stack>
           </Paper>
 

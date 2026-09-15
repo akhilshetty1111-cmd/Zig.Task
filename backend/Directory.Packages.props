@@ -39,6 +39,14 @@
     <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
   </ItemGroup>
 
+  <ItemGroup Label="Storage">
+    <!-- Pinned below the latest (12.29.x) because that line's Azure.Core
+         transitively requires Microsoft.Extensions.Hosting.Abstractions
+         10.0.3, which conflicts with this solution's net9.0 Microsoft.Extensions.*
+         pins (9.0.0). 12.24.1's Azure.Core only needs 8.0.1+. -->
+    <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.1" />
+  </ItemGroup>
+
   <ItemGroup Label="Logging / Telemetry">
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageVersion Include="Serilog.Settings.Configuration" Version="9.0.0" />

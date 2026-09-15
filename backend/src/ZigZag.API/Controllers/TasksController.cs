@@ -2,6 +2,10 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ZigZag.Application.Common.Models;
+using ZigZag.Application.Features.Attachments.Commands.DeleteAttachment;
+using ZigZag.Application.Features.Attachments.Commands.UploadAttachment;
+using ZigZag.Application.Features.Attachments.Common;
+using ZigZag.Application.Features.Attachments.Queries.GetAttachments;
 using ZigZag.Application.Features.Comments.Commands.AddComment;
 using ZigZag.Application.Features.Comments.Commands.DeleteComment;
 using ZigZag.Application.Features.Comments.Common;
@@ -107,6 +111,28 @@ public sealed class TasksController : ControllerBase
     public async Task<IActionResult> DeleteComment(Guid id, Guid commentId, CancellationToken cancellationToken)
     {
         await _mediator.Send(new DeleteCommentCommand(commentId), cancellationToken);
+        return NoContent();
+    }
+
+    [HttpGet("{id:guid}/attachments")]
+    public async Task<ActionResult<IReadOnlyList<AttachmentDto>>> GetAttachments(Guid id, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new GetAttachmentsQuery(id), cancellationToken));
+
+    /// <summary>multipart/form-data upload - IFormFile is bound from the request form automatically.</summary>
+    [HttpPost("{id:guid}/attachments")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<AttachmentDto>> UploadAttachment(Guid id, IFormFile file, CancellationToken cancellationToken)
+    {
+        await using var stream = file.OpenReadStream();
+        var command = new UploadAttachmentCommand(id, file.FileName, file.ContentType, file.Length, stream);
+        var attachment = await _mediator.Send(command, cancellationToken);
+        return CreatedAtAction(nameof(GetAttachments), new { id }, attachment);
+    }
+
+    [HttpDelete("{id:guid}/attachments/{attachmentId:guid}")]
+    public async Task<IActionResult> DeleteAttachment(Guid id, Guid attachmentId, CancellationToken cancellationToken)
+    {
+        await _mediator.Send(new DeleteAttachmentCommand(attachmentId), cancellationToken);
         return NoContent();
     }
 
