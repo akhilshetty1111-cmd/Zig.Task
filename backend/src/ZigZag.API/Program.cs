@@ -100,11 +100,14 @@ public class Program
         // three noisy default lines from the framework.
         app.UseSerilogRequestLogging();
 
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
+        // Deliberately not gated to Development: this is a portfolio project
+        // meant to be shown off, and Swagger has its own JWT-protected
+        // endpoints underneath it regardless - nothing here is a bigger
+        // exposure than the API already is. The real production concern
+        // (never leak exception details to a stranger) is handled separately
+        // by GlobalExceptionHandler checking IsDevelopment() on its own.
+        app.UseSwagger();
+        app.UseSwaggerUI();
 
         app.UseHttpsRedirection();
         app.UseCors(CorsPolicyName);
