@@ -13,12 +13,12 @@ public class AddCommentCommandHandlerTests
 {
     private readonly ICommentRepository _commentRepository = Substitute.For<ICommentRepository>();
     private readonly ITaskRepository _taskRepository = Substitute.For<ITaskRepository>();
-    private readonly INotificationRepository _notificationRepository = Substitute.For<INotificationRepository>();
+    private readonly INotificationMessagePublisher _notificationPublisher = Substitute.For<INotificationMessagePublisher>();
     private readonly IProjectRepository _projectRepository = Substitute.For<IProjectRepository>();
     private readonly ICurrentUserService _currentUserService = Substitute.For<ICurrentUserService>();
 
     private AddCommentCommandHandler CreateHandler()
-        => new(_commentRepository, _taskRepository, _notificationRepository, _currentUserService,
+        => new(_commentRepository, _taskRepository, _notificationPublisher, _currentUserService,
             new ProjectAuthorizationService(_projectRepository));
 
     private static TaskDto SampleTask(Guid projectId, Guid taskId, Guid createdBy, Guid? assignedTo) => new(
@@ -49,11 +49,11 @@ public class AddCommentCommandHandlerTests
         await handler.Handle(new AddCommentCommand(taskId, "hello"), CancellationToken.None);
 
         // Assignee gets notified.
-        await _notificationRepository.Received(1).CreateAsync(
-            Arg.Is<Notification>(n => n.UserId == assigneeId), Arg.Any<CancellationToken>());
+        await _notificationPublisher.Received(1).PublishAsync(
+            Arg.Is<NotificationMessage>(m => m.UserId == assigneeId), Arg.Any<CancellationToken>());
         // The creator (who is also the commenter here) must NOT notify themselves.
-        await _notificationRepository.DidNotReceive().CreateAsync(
-            Arg.Is<Notification>(n => n.UserId == creatorId), Arg.Any<CancellationToken>());
+        await _notificationPublisher.DidNotReceive().PublishAsync(
+            Arg.Is<NotificationMessage>(m => m.UserId == creatorId), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -73,6 +73,6 @@ public class AddCommentCommandHandlerTests
         await handler.Handle(new AddCommentCommand(taskId, "hello"), CancellationToken.None);
 
         // A HashSet dedupes creator == assignee, so exactly one notification.
-        await _notificationRepository.Received(1).CreateAsync(Arg.Any<Notification>(), Arg.Any<CancellationToken>());
+        await _notificationPublisher.Received(1).PublishAsync(Arg.Any<NotificationMessage>(), Arg.Any<CancellationToken>());
     }
 }

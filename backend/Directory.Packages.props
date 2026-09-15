@@ -33,6 +33,7 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup Label="Security">
@@ -45,6 +46,10 @@
          10.0.3, which conflicts with this solution's net9.0 Microsoft.Extensions.*
          pins (9.0.0). 12.24.1's Azure.Core only needs 8.0.1+. -->
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Messaging">
+    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.17.1" />
   </ItemGroup>
 
   <ItemGroup Label="Logging / Telemetry">

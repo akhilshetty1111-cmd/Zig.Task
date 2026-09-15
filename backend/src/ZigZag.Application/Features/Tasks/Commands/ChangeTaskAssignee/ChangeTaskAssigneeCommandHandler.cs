@@ -3,7 +3,6 @@ using ZigZag.Application.Common.Exceptions;
 using ZigZag.Application.Common.Interfaces;
 using ZigZag.Application.Features.Projects.Common;
 using ZigZag.Application.Features.Tasks.Common;
-using ZigZag.Domain.Entities;
 using ZigZag.Domain.Enums;
 
 namespace ZigZag.Application.Features.Tasks.Commands.ChangeTaskAssignee;
@@ -13,7 +12,7 @@ public sealed class ChangeTaskAssigneeCommandHandler : IRequestHandler<ChangeTas
     private readonly ITaskRepository _taskRepository;
     private readonly ITaskHistoryRepository _taskHistoryRepository;
     private readonly IProjectRepository _projectRepository;
-    private readonly INotificationRepository _notificationRepository;
+    private readonly INotificationMessagePublisher _notificationPublisher;
     private readonly ICurrentUserService _currentUserService;
     private readonly ProjectAuthorizationService _authorization;
 
@@ -21,14 +20,14 @@ public sealed class ChangeTaskAssigneeCommandHandler : IRequestHandler<ChangeTas
         ITaskRepository taskRepository,
         ITaskHistoryRepository taskHistoryRepository,
         IProjectRepository projectRepository,
-        INotificationRepository notificationRepository,
+        INotificationMessagePublisher notificationPublisher,
         ICurrentUserService currentUserService,
         ProjectAuthorizationService authorization)
     {
         _taskRepository = taskRepository;
         _taskHistoryRepository = taskHistoryRepository;
         _projectRepository = projectRepository;
-        _notificationRepository = notificationRepository;
+        _notificationPublisher = notificationPublisher;
         _currentUserService = currentUserService;
         _authorization = authorization;
     }
@@ -61,18 +60,9 @@ public sealed class ChangeTaskAssigneeCommandHandler : IRequestHandler<ChangeTas
             // Notify the new assignee, unless they assigned it to themselves.
             if (request.AssignedToUserId is { } newAssigneeId && newAssigneeId != userId)
             {
-                await _notificationRepository.CreateAsync(new Notification
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = newAssigneeId,
-                    Type = "TASK_ASSIGNED",
-                    Title = $"You were assigned to \"{task.Title}\"",
-                    Message = null,
-                    TaskId = task.Id,
-                    ProjectId = task.ProjectId,
-                    IsRead = false,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                }, cancellationToken);
+                await _notificationPublisher.PublishAsync(new NotificationMessage(
+                    newAssigneeId, "TASK_ASSIGNED", $"You were assigned to \"{task.Title}\"", null, task.Id, task.ProjectId),
+                    cancellationToken);
             }
         }
 

@@ -5,6 +5,7 @@ using ZigZag.Application.Features.Attachments.Common;
 using ZigZag.Application.Features.Authentication.Common;
 using ZigZag.Application.Features.Comments.Common;
 using ZigZag.Application.Features.Tasks.Common;
+using ZigZag.Infrastructure.Messaging;
 using ZigZag.Infrastructure.Persistence;
 using ZigZag.Infrastructure.Persistence.Repositories;
 using ZigZag.Infrastructure.Security;
@@ -40,6 +41,25 @@ public static class DependencyInjection
 
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
         services.Configure<BlobStorageSettings>(configuration.GetSection(BlobStorageSettings.SectionName));
+        services.Configure<ServiceBusSettings>(configuration.GetSection(ServiceBusSettings.SectionName));
+
+        // Singleton: a ServiceBusClient is meant to be created once and reused
+        // for the app's lifetime, not per-request (Azure SDK guidance) - unlike
+        // the Scoped repositories above, which need a fresh DB connection per
+        // request.
+        services.AddSingleton<INotificationMessagePublisher, ServiceBusNotificationPublisher>();
+
+        // Hosted services run at host startup, before any request ever
+        // arrives - unlike AzureBlobStorageService (constructed lazily, so a
+        // blank config only fails the request that needs it), registering
+        // this unconditionally would crash the ENTIRE app on boot in any
+        // environment that hasn't configured ServiceBus yet. Only register it
+        // once a connection string actually exists.
+        var serviceBusConnectionString = configuration.GetSection(ServiceBusSettings.SectionName)["ConnectionString"];
+        if (!string.IsNullOrWhiteSpace(serviceBusConnectionString))
+        {
+            services.AddHostedService<NotificationConsumerBackgroundService>();
+        }
 
         return services;
     }

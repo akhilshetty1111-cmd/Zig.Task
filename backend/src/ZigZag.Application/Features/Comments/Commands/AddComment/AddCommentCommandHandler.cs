@@ -9,29 +9,29 @@ using ZigZag.Domain.Enums;
 namespace ZigZag.Application.Features.Comments.Commands.AddComment;
 
 /// <summary>
-/// Notifies the task's assignee and creator (if not the commenter) as a
-/// direct side effect - see docs/architecture.md for why this stays inline
-/// rather than going through a MediatR domain-event/notification-handler
-/// pipeline: two trigger points do not justify that machinery yet.
+/// Notifies the task's assignee and creator (if not the commenter) by
+/// publishing to Service Bus rather than writing a notification row
+/// directly - see <see cref="INotificationMessagePublisher"/> and
+/// NotificationConsumerBackgroundService for the other half of this.
 /// </summary>
 public sealed class AddCommentCommandHandler : IRequestHandler<AddCommentCommand, CommentDto>
 {
     private readonly ICommentRepository _commentRepository;
     private readonly ITaskRepository _taskRepository;
-    private readonly INotificationRepository _notificationRepository;
+    private readonly INotificationMessagePublisher _notificationPublisher;
     private readonly ICurrentUserService _currentUserService;
     private readonly ProjectAuthorizationService _authorization;
 
     public AddCommentCommandHandler(
         ICommentRepository commentRepository,
         ITaskRepository taskRepository,
-        INotificationRepository notificationRepository,
+        INotificationMessagePublisher notificationPublisher,
         ICurrentUserService currentUserService,
         ProjectAuthorizationService authorization)
     {
         _commentRepository = commentRepository;
         _taskRepository = taskRepository;
-        _notificationRepository = notificationRepository;
+        _notificationPublisher = notificationPublisher;
         _currentUserService = currentUserService;
         _authorization = authorization;
     }
@@ -76,18 +76,9 @@ public sealed class AddCommentCommandHandler : IRequestHandler<AddCommentCommand
 
         foreach (var recipientId in recipients)
         {
-            await _notificationRepository.CreateAsync(new Notification
-            {
-                Id = Guid.NewGuid(),
-                UserId = recipientId,
-                Type = "COMMENT_ADDED",
-                Title = $"New comment on \"{task.Title}\"",
-                Message = null,
-                TaskId = task.Id,
-                ProjectId = task.ProjectId,
-                IsRead = false,
-                CreatedAt = DateTimeOffset.UtcNow,
-            }, cancellationToken);
+            await _notificationPublisher.PublishAsync(new NotificationMessage(
+                recipientId, "COMMENT_ADDED", $"New comment on \"{task.Title}\"", null, task.Id, task.ProjectId),
+                cancellationToken);
         }
     }
 }
